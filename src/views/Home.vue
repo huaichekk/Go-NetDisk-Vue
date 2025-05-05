@@ -24,6 +24,7 @@
         </template>
       </el-input>
       <el-button type="primary" @click="dialogVisible = true" plain>上传文件</el-button>
+      <el-button type="primary" @click="goChat" plain>智能文件助手</el-button>
     </div>
 
     <!-- 上传对话框 -->
@@ -115,11 +116,28 @@
               <el-icon color="#666"><Download /></el-icon>
             </el-button>
             <el-button size="large" link>
-              <el-icon color="#666"><Cpu /></el-icon>
+              <el-icon color="#666" @click="handleThinkFile(row)"><Cpu /></el-icon>
             </el-button>
           </template>
         </el-table-column>
       </el-table>
+      <el-dialog
+          v-model="fileDialog"
+          v-loading="fileDialogLoading"
+          title="AI文件概述"
+          width="500"
+          align-center
+      >
+        <span>{{fileDialogMsg}}</span>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="fileDialog = false">取消</el-button>
+            <el-button type="primary" @click="fileDialog = false;fileDialogMsg=''">
+              好的
+            </el-button>
+          </div>
+        </template>
+      </el-dialog>
     </div>
   </div>
 </template>
@@ -137,6 +155,8 @@ import {
 import { ElMessage, ElMessageBox,ElLoading } from 'element-plus' // 添加 ElMessageBox
 import request from "@/utils/request.js"
 import storage from "@/utils/storage.js";
+import service from "@/utils/request.js";
+import router from "@/router/index.js";
 
 const input3 = ref('')
 const tableData = ref([])
@@ -144,7 +164,9 @@ const dialogVisible = ref(false)
 const fileList = ref([])
 const uploadFile = ref(null)
 const isUploading = ref(false)
-
+const fileDialogLoading=ref(false)
+const fileDialog=ref(false)
+const fileDialogMsg=ref("")
 // 获取文件列表
 const fetchData = async () => {
   try {
@@ -232,7 +254,7 @@ const handleDelete = async (row) => {
       type: 'warning'
     })
 
-    const response = await request.delete(`/files/delete?id=${row.ID}`)
+    const response = await request.delete(`/files/delete?file_id=${row.ID}`)
     if (response.data.code === 200) {
       ElMessage.success('删除成功')
       await fetchData()  // 刷新列表
@@ -300,6 +322,30 @@ const getFileNameFromHeaders = (headers) => {
   const filenameRegex = /filename="?([^"]+)"?/i
   return filenameRegex.exec(disposition)?.[1]
 }
+
+
+const handleThinkFile=async (row)=>{
+
+  fileDialog.value=true
+  fileDialogLoading.value=true
+  try {
+    const resp=await service.get(`/files/think?file_id=${ row.ID }`)
+    fileDialogMsg.value=resp.data.data
+    fileDialogLoading.value=false
+  }catch (error) {
+    ElMessage.error('文件加载失败',error)
+    console.error(error)
+  }
+}
+
+
+const goChat=()=>{
+  router.push("/chat")
+}
+
+
+
+
 </script>
 
 <style scoped>
